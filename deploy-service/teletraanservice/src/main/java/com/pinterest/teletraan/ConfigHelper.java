@@ -44,6 +44,10 @@ import com.pinterest.deployservice.rodimus.DefaultRodimusManager;
 import com.pinterest.deployservice.rodimus.RodimusManagerImpl;
 import com.pinterest.deployservice.scm.SourceControlManager;
 import com.pinterest.deployservice.scm.SourceControlManagerProxy;
+import com.pinterest.rodimus.event.AppEventPublisher;
+import com.pinterest.rodimus.event.MetricsAsEventsListener;
+import com.pinterest.rodimus.event.ResourceChangedEvent;
+import com.pinterest.rodimus.event.ResourceChangedEventPublisher;
 import com.pinterest.teletraan.config.BuildAllowlistFactory;
 import com.pinterest.deployservice.allowlists.BuildAllowlistImpl;
 import com.pinterest.deployservice.buildtags.BuildTagsManagerImpl;
@@ -61,6 +65,8 @@ import com.pinterest.teletraan.worker.HostTerminator;
 import com.pinterest.teletraan.worker.HotfixStateTransitioner;
 import com.pinterest.teletraan.worker.SimpleAgentJanitor;
 import com.pinterest.teletraan.worker.StateTransitioner;
+
+import io.micrometer.core.instrument.Metrics;
 
 import org.apache.commons.collections.MapUtils;
 import org.apache.commons.dbcp.BasicDataSource;
@@ -218,6 +224,12 @@ public class ConfigHelper {
         // Only applies to Teletraan agent service
         context.setAgentCountCacheTtl(configuration.getSystemFactory().getAgentCountCacheTtl());
         context.setMaxParallelThreshold(configuration.getSystemFactory().getMaxParallelThreshold());
+
+        // Publishers
+        AppEventPublisher<ResourceChangedEvent> resourceChangedEventPublisher = new ResourceChangedEventPublisher();
+        resourceChangedEventPublisher.subscribe(new MetricsAsEventsListener(Metrics.globalRegistry));
+        context.setResourceChangedEventPublisher(resourceChangedEventPublisher);
+
         return context;
     }
 
